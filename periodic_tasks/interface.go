@@ -1,4 +1,4 @@
-package tasks
+package periodic_tasks
 
 import "time"
 

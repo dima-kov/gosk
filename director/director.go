@@ -1,20 +1,20 @@
 package director
 
 import (
-	"github.com/dima-kov/go-tasks/tasks"
+	"github.com/dima-kov/go-tasks/periodic_tasks"
 	"sync"
 	"time"
 )
 
 type TasksDirector struct {
-	tasks []tasks.PeriodicalTask
+	tasks []periodic_tasks.PeriodicalTask
 }
 
-func NewTasksDirector(t ...tasks.PeriodicalTask) TasksDirector {
+func NewTasksDirector(t ...periodic_tasks.PeriodicalTask) TasksDirector {
 	return TasksDirector{tasks: t}
 }
 
-func (td *TasksDirector) RegiкsterTask(task tasks.PeriodicalTask) {
+func (td *TasksDirector) RegiкsterTask(task periodic_tasks.PeriodicalTask) {
 	td.tasks = append(td.tasks, task)
 }
 
@@ -27,7 +27,7 @@ func (td *TasksDirector) Run() {
 	wg.Wait()
 }
 
-func (td *TasksDirector) executeTask(task tasks.PeriodicalTask) {
+func (td *TasksDirector) executeTask(task periodic_tasks.PeriodicalTask) {
 	for {
 		time.Sleep(task.GetRunEvery())
 		task.Execute()
