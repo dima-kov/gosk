@@ -1,14 +1,16 @@
 package main
 
 import (
-	"github.com/dima-kov/go-tasks/director"
-	"github.com/dima-kov/go-tasks/periodic_tasks"
+	"github.com/dima-kov/go-tasks/tasks"
+	"github.com/dima-kov/go-tasks/tasks_test"
 	"time"
 )
 
 func main() {
-	deleteTask := periodic_tasks.NewDeleteTask(time.Second * 4)
-	dropTask := periodic_tasks.NewDropQueryTask(time.Second * 5)
-	tasksDirector := director.NewTasksDirector(deleteTask, dropTask)
-	tasksDirector.Run()
+	taskManager, err := tasks.NewTaskManager("redis", "localhost", 6379)
+	if err != nil {
+		panic(err)
+	}
+	deleteAllTask := tasks_test.DeleteById{"delete_all", taskManager}
+	deleteAllTask.Delay(4*time.Hour, 22)
 }
