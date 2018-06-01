@@ -1,15 +1,17 @@
-package tasks
+package brokers
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/dima-kov/go-tasks/tasks/task"
 	"github.com/go-redis/redis"
 	"github.com/satori/go.uuid"
 	"time"
 )
 
 type redisBroker struct {
-	RedisClient *redis.Client
+	redisClient *redis.Client
+	queueName   string
 }
 
 type jsonTaskSerializer struct {
@@ -18,46 +20,34 @@ type jsonTaskSerializer struct {
 	Args     []interface{} `json:"Args"`
 }
 
-func NewRedisBroker(host string, port uint, password string) Broker {
+func NewRedisBroker(host string, port uint, password, queueName string) Broker {
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", host, port),
 		Password: password,
 		DB:       0,
 	})
-
-	pong, err := redisClient.Ping().Result()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Redis connected: ", pong)
-	return &redisBroker{RedisClient: redisClient}
+	broker := redisBroker{redisClient: redisClient, queueName: queueName}
+	broker.checkConnection()
+	return &broker
 }
 
-func (rb *redisBroker) AddTask(task Task, delay time.Duration, args ...interface{}) {
+func (rb *redisBroker) AddTask(task task.Task, delay time.Duration, args ...interface{}) (int64, error) {
 	taskId := uuid.Must(uuid.NewV4()).String()
 
-	value, err := rb.serializeTask(task, taskId, args)
-	if err != nil {
-		panic(err)
-	}
 	score := float64(time.Now().UTC().Add(delay).Unix())
-
-	redisTaskItem := redis.Z{Score: score, Member: value}
-	_, err = rb.RedisClient.ZAdd(WaitingQueueName, redisTaskItem).Result()
+	serializedTask, err := rb.serializeTask(task, taskId, args)
 	if err != nil {
 		panic(err)
 	}
+
+	redisTaskItem := redis.Z{Score: score, Member: serializedTask}
+	return rb.redisClient.ZAdd(rb.queueName, redisTaskItem).Result()
 }
 
 func (rb redisBroker) HandleWaitingQueue() {
 	go func() {
 		for range time.Tick(2 * time.Second) {
-			fmt.Println("Here in for")
-			tasks, err := rb.RedisClient.ZRangeWithScores(
-				WaitingQueueName,
-				0, 0,
-			).Result()
-			fmt.Println(tasks)
+			tasks, err := rb.redisClient.ZRangeWithScores(rb.queueName, 0, 0).Result()
 			if err != nil {
 				fmt.Println("error", err)
 			}
@@ -70,7 +60,6 @@ func (rb redisBroker) HandleWaitingQueue() {
 			}
 		}
 	}()
-	fmt.Println("after go")
 }
 
 func (rb *redisBroker) runTask(value string) {
@@ -80,13 +69,22 @@ func (rb *redisBroker) runTask(value string) {
 }
 
 func (rb *redisBroker) deleteTaskFromQueue(value string) {
-	_, err := rb.RedisClient.ZRem(WaitingQueueName, value).Result()
+	fmt.Println("Delete task from queue: ", value)
+	_, err := rb.redisClient.ZRem(rb.queueName, value).Result()
 	if err != nil {
 		print("Error while deleting")
 	}
 }
 
-func (rb *redisBroker) serializeTask(task Task, uuid string, args ...interface{}) ([]byte, error) {
+func (rb *redisBroker) checkConnection() {
+	pong, err := rb.redisClient.Ping().Result()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Redis connected: ", pong)
+}
+
+func (rb *redisBroker) serializeTask(task task.Task, uuid string, args ...interface{}) ([]byte, error) {
 	taskPayload := jsonTaskSerializer{
 		task.GetName(),
 		uuid,
