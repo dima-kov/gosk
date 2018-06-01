@@ -3,6 +3,7 @@ package tasks
 import "time"
 
 type Broker interface {
-	SetTask(task Task, delay time.Duration, args ...interface{})
-	serializeTask(task Task, args ...interface{}) ([]byte, error)
+	AddTask(task Task, delay time.Duration, args ...interface{})
+	HandleWaitingQueue()
+	serializeTask(task Task, uuid string, args ...interface{}) ([]byte, error)
 }

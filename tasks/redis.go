@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis"
+	"github.com/satori/go.uuid"
 	"time"
 )
 
@@ -12,8 +13,9 @@ type redisBroker struct {
 }
 
 type jsonTaskSerializer struct {
-	taskName string        `json:"taskName"`
-	args     []interface{} `json:"args"`
+	TaskName string        `json:"TaskName"`
+	Uuid     string        `json:"Uuid"`
+	Args     []interface{} `json:"Args"`
 }
 
 func NewRedisBroker(host string, port uint, password string) Broker {
@@ -31,24 +33,64 @@ func NewRedisBroker(host string, port uint, password string) Broker {
 	return &redisBroker{RedisClient: redisClient}
 }
 
-func (tm *redisBroker) SetTask(task Task, delay time.Duration, args ...interface{}) {
-	key := fmt.Sprintf("%s_%s_%d", TaskNameStartsWith, task.GetName(), time.Now().Unix())
-	value, err := tm.serializeTask(task, args)
-	if err != nil {
-		panic(err)
-	}
+func (rb *redisBroker) AddTask(task Task, delay time.Duration, args ...interface{}) {
+	taskId := uuid.Must(uuid.NewV4()).String()
 
-	set, err := tm.RedisClient.SetNX(key, string(value), delay).Result()
+	value, err := rb.serializeTask(task, taskId, args)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(set)
+	score := float64(time.Now().UTC().Add(delay).Unix())
+
+	redisTaskItem := redis.Z{Score: score, Member: value}
+	_, err = rb.RedisClient.ZAdd(WaitingQueueName, redisTaskItem).Result()
+	if err != nil {
+		panic(err)
+	}
 }
 
-func (tm *redisBroker) serializeTask(task Task, args ...interface{}) ([]byte, error) {
-	taskValues := jsonTaskSerializer{
+func (rb redisBroker) HandleWaitingQueue() {
+	go func() {
+		for range time.Tick(2 * time.Second) {
+			fmt.Println("Here in for")
+			tasks, err := rb.RedisClient.ZRangeWithScores(
+				WaitingQueueName,
+				0, 0,
+			).Result()
+			fmt.Println(tasks)
+			if err != nil {
+				fmt.Println("error", err)
+			}
+			if len(tasks) == 0 {
+				continue
+			}
+			taskPayload := tasks[0]
+			if int64(taskPayload.Score) < time.Now().UTC().Unix() {
+				rb.runTask(taskPayload.Member.(string))
+			}
+		}
+	}()
+	fmt.Println("after go")
+}
+
+func (rb *redisBroker) runTask(value string) {
+	fmt.Println("TASK running method is UP")
+	fmt.Println("Payload: ", value)
+	rb.deleteTaskFromQueue(value)
+}
+
+func (rb *redisBroker) deleteTaskFromQueue(value string) {
+	_, err := rb.RedisClient.ZRem(WaitingQueueName, value).Result()
+	if err != nil {
+		print("Error while deleting")
+	}
+}
+
+func (rb *redisBroker) serializeTask(task Task, uuid string, args ...interface{}) ([]byte, error) {
+	taskPayload := jsonTaskSerializer{
 		task.GetName(),
+		uuid,
 		args,
 	}
-	return json.Marshal(taskValues)
+	return json.Marshal(taskPayload)
 }
