@@ -2,13 +2,13 @@ package tasks_test
 
 import (
 	"fmt"
-	"github.com/dima-kov/go-tasks/tasks"
+	"github.com/dima-kov/go-tasks/delay"
 	"time"
 )
 
 type DeleteById struct {
 	Name    string
-	Manager tasks.TaskManager
+	Manager delay.TaskManager
 }
 
 func (d DeleteById) GetName() string {

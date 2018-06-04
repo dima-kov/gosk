@@ -1,9 +1,8 @@
-package brokers
+package delay
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/dima-kov/go-tasks/tasks/task"
 	"github.com/go-redis/redis"
 	"github.com/satori/go.uuid"
 	"time"
@@ -31,7 +30,7 @@ func NewRedisBroker(host string, port uint, password, queueName string) Broker {
 	return &broker
 }
 
-func (rb *redisBroker) AddTask(task task.Task, delay time.Duration, args ...interface{}) (int64, error) {
+func (rb *redisBroker) AddTask(task Task, delay time.Duration, args ...interface{}) (int64, error) {
 	taskId := uuid.Must(uuid.NewV4()).String()
 
 	score := float64(time.Now().UTC().Add(delay).Unix())
@@ -81,10 +80,10 @@ func (rb *redisBroker) checkConnection() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Redis connected: ", pong)
+	fmt.Println("Redis connected: PING -", pong)
 }
 
-func (rb *redisBroker) serializeTask(task task.Task, uuid string, args ...interface{}) ([]byte, error) {
+func (rb *redisBroker) serializeTask(task Task, uuid string, args ...interface{}) ([]byte, error) {
 	taskPayload := jsonTaskSerializer{
 		task.GetName(),
 		uuid,
