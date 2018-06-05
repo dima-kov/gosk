@@ -30,7 +30,7 @@ func NewRedisBroker(host string, port uint, password, queueName string) Broker {
 	return &broker
 }
 
-func (rb *redisBroker) AddTask(task Task, delay time.Duration, args ...interface{}) (int64, error) {
+func (rb *redisBroker) AddTask(task DelayTask, delay time.Duration, args ...interface{}) (int64, error) {
 	taskId := uuid.Must(uuid.NewV4()).String()
 
 	score := float64(time.Now().UTC().Add(delay).Unix())
@@ -83,7 +83,7 @@ func (rb *redisBroker) checkConnection() {
 	fmt.Println("Redis connected: PING -", pong)
 }
 
-func (rb *redisBroker) serializeTask(task Task, uuid string, args ...interface{}) ([]byte, error) {
+func (rb *redisBroker) serializeTask(task DelayTask, uuid string, args ...interface{}) ([]byte, error) {
 	taskPayload := jsonTaskSerializer{
 		task.GetName(),
 		uuid,

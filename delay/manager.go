@@ -8,14 +8,14 @@ import (
 const WaitingQueueName = "go_tasks"
 
 type TaskManager interface {
-	Delay(task Task, delay time.Duration, args ...interface{})
-	RegisterTasks(tasks ...Task)
+	Delay(task DelayTask, delay time.Duration, args ...interface{})
+	RegisterTasks(tasks ...DelayTask)
 	HandleWaitingQueue()
 }
 
 type taskManager struct {
 	broker          Broker
-	registeredTasks map[string]Task
+	registeredTasks map[string]DelayTask
 }
 
 func NewTaskManager(brokerType, host string, port uint) (TaskManager, error) {
@@ -26,18 +26,18 @@ func NewTaskManager(brokerType, host string, port uint) (TaskManager, error) {
 	default:
 		return nil, errors.New("undefined broker type: " + brokerType)
 	}
-	manager := taskManager{broker: broker, registeredTasks: map[string]Task{}}
+	manager := taskManager{broker: broker, registeredTasks: map[string]DelayTask{}}
 	manager.HandleWaitingQueue()
 	return &manager, nil
 }
 
-func (tm *taskManager) RegisterTasks(tasks ...Task) {
+func (tm *taskManager) RegisterTasks(tasks ...DelayTask) {
 	for _, item := range tasks {
 		tm.registeredTasks[item.GetName()] = item
 	}
 }
 
-func (tm *taskManager) Delay(task Task, delay time.Duration, args ...interface{}) {
+func (tm *taskManager) Delay(task DelayTask, delay time.Duration, args ...interface{}) {
 	tm.broker.AddTask(task, delay, args)
 }
 

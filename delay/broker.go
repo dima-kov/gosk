@@ -5,7 +5,7 @@ import (
 )
 
 type Broker interface {
-	AddTask(task Task, delay time.Duration, args ...interface{}) (int64, error)
+	AddTask(task DelayTask, delay time.Duration, args ...interface{}) (int64, error)
 	HandleWaitingQueue()
-	serializeTask(task Task, uuid string, args ...interface{}) ([]byte, error)
+	serializeTask(task DelayTask, uuid string, args ...interface{}) ([]byte, error)
 }
