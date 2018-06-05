@@ -2,7 +2,7 @@ package tasks_test
 
 import (
 	"fmt"
-	"github.com/dima-kov/go-tasks/delay"
+	"github.com/dima-kov/gosk/delay"
 	"time"
 )
 

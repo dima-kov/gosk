@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/dima-kov/go-tasks/delay"
-	"github.com/dima-kov/go-tasks/periodic"
-	"github.com/dima-kov/go-tasks/tasks_test"
-	periodicTest "github.com/dima-kov/go-tasks/tasks_test/periodic"
+	"github.com/dima-kov/gosk/delay"
+	"github.com/dima-kov/gosk/periodic"
+	"github.com/dima-kov/gosk/tasks_test"
+	periodicTest "github.com/dima-kov/gosk/tasks_test/periodic"
 	"sync"
 	"time"
 )
