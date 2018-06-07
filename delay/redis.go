@@ -19,7 +19,7 @@ type jsonTaskSerializer struct {
 	Args     []interface{} `json:"Args"`
 }
 
-func NewRedisBroker(host string, port uint, password, queueName string) Broker {
+func NewRedisBroker(host string, port uint, password, queueName string) *redisBroker {
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", host, port),
 		Password: password,
