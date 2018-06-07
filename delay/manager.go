@@ -5,8 +5,6 @@ import (
 	"time"
 )
 
-const WaitingQueueName = "go_tasks"
-
 type TaskManager interface {
 	Delay(task DelayTask, delay time.Duration, args ...interface{})
 	RegisterTasks(tasks ...DelayTask)
